@@ -1,0 +1,100 @@
+Assignment tips and notes:
+
+- it is suggested to follow conventions and simple rules taught in lectures
+	- for example, suppose you create variable in C 'int arr[SIZE]; // #define(SIZE,100)
+		in assembly:
+		- create macro or equates (example for equates below): (VARNAME_size notation for var size, VARNAME_s notation for offsets relative to fp=x29)
+			- SIZE = 100    // just put the same macro name, it makes easier for everyone to follow through
+			- arr_size = 4*SIZE
+			- arr_s = offset value
+
+					if you give different names or exaggerates names like arr_of_integers_size, arr_offset_fp
+						that just makes harder to read for you and us :]
+		
+		- it would look more cleaner if too many equates are not created. 
+
+	- it would make it easier to a macro or register equate for base address of array and x29, x30
+			- fp .req x29
+			- lr .req x30
+			- base_arr .req x#     , give any simple name like barr, base_arr ...
+	
+	- the rest is on your preferences as long as you follow the conventions :]
+
+
+
+
+
+- the pdf mentions to "always read or write memory when using or assigning to the local variables"
+		(the same holds for temporary variables :]  )
+	- suppose:
+		int a = 2;
+		int b = 3;
+		int c = a+b;
+
+
+		So in assembly it is suggested to use ldr at each point
+
+			// a = 2
+			mov w19, 2
+			str w19, [fp, a_s]
+			
+			// b = 3
+			mov w20, 3
+			str w20, [fp, b_s]
+
+			// even if w19=a and w20=b, still read again from memory
+				// suppose in future you end up messing up w19 and w20, before below lines
+				// ldr ensures w19 and w20 are always set to values of a and b on stack no matter what
+
+			// c = a+b
+			ldr w19, [fp, a_s]
+			ldr w20, [fp, b_s]
+			add w21, w19, w20 
+			str w21, [fp, c_s]
+
+
+
+
+
+- gdb minimum requirements:
+		- To read 'n' integer elements of array in gdb use """ x/nd barr""", where barr is adddress of beginning of array
+			for example to read 10 elements where base address of array is stored, let's say, in x19
+				x/10d $x19         DO NOT USE EQUATES in gdb: gcc replaces them with immediates/registers assigned
+		
+
+
+	- Assignment says "display the contents of the array before and after sorting it"
+
+		Therefore, the minimum requirement to satisfy points are as follows:
+			- set 2 breakpoints:
+				- 1st breakpoint right at the point you exit first loop (the loop that uses rand() )
+					  - obviously before you enter the outer loop of bubble sort
+				- 2nd breakpiont right after you exit out of outer loop of bubble sort
+			
+			- you may create labels in your .asm file for this purpose:
+				- give any name that makes sense, that makes easier for us when marking the assignments: for example: debug1/debug2, gdb1/gdb2
+		REMEMBER TO USE *, so """ b * label """
+
+
+		1) So (r)un the program in gdb, and use the 'x' command shown above to show the array
+		2) then use 'c' command to jump to next breakpoint. It is suggested to not single step to avoid clutter on script files
+		3) Then  use 'x' command again.
+		4) finally use 'c' to finish up running rest of program.
+
+
+
+- common mistakes to avoid:
+	- suppose you use w19 and x19 at the same time
+		- THAT IS WRONG!
+		w19 represents lower 32 bits of same register number 19
+		x19 represent all 64 bits of same register number 19
+
+		So if you make changes to w19, x19 will be different as well!
+
+	- for printf function 1st argument is always passed to x0, not w0
+
+	- temporary variables are not local variables:
+		- so do not allocate memory for them in 'stp' command
+		- allocate memory by moving 'sp' up (- direction) where declared
+		- deallocate memory by moving 'sp' down (+ direction) where the scope of variable ends
+			- remember to keep stack memory 16bytes aligned
